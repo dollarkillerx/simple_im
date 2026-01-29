@@ -90,6 +90,37 @@ export const groupApi = {
     rpcCall<{ message: string }>('group.join', { group_id: groupId }),
 }
 
+// File API
+export const fileApi = {
+  upload: async (file: File): Promise<{ id: number; filename: string; url: string; size: number; mimetype: string }> => {
+    const token = getToken()
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      headers,
+      body: formData,
+    })
+
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.status}`)
+    }
+
+    const data = await response.json()
+    if (data.error) {
+      throw new Error(data.error)
+    }
+
+    return data
+  },
+}
+
 // Message API
 export const messageApi = {
   send: (params: {

@@ -193,7 +193,13 @@ export const useChatStore = defineStore('chat', () => {
     // Update conversation
     const conv = conversations.value.get(chatId)
     if (conv) {
-      conv.lastMessage = params.content || '[文件]'
+      if (params.msgType === MessageType.Image) {
+        conv.lastMessage = '[图片]'
+      } else if (params.msgType === MessageType.File) {
+        conv.lastMessage = '[文件]'
+      } else {
+        conv.lastMessage = params.content || ''
+      }
       conv.lastTime = result.created_at
     }
 
@@ -253,7 +259,13 @@ export const useChatStore = defineStore('chat', () => {
         conversations.value.set(chatId, conv)
       }
 
-      conv.lastMessage = msg.content || '[文件]'
+      if (msg.msg_type === MessageType.Image) {
+        conv.lastMessage = '[图片]'
+      } else if (msg.msg_type === MessageType.File) {
+        conv.lastMessage = '[文件]'
+      } else {
+        conv.lastMessage = msg.content || ''
+      }
       conv.lastTime = msg.created_at
 
       if (chatId !== currentChatId.value) {

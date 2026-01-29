@@ -7,7 +7,6 @@ import { formatTime, getDefaultAvatar } from '@/utils/format'
 const router = useRouter()
 const chatStore = useChatStore()
 
-const searchValue = ref('')
 const refreshing = ref(false)
 
 async function onRefresh() {
@@ -29,23 +28,17 @@ function getAvatar(conv: { avatar: string; name: string }) {
 </script>
 
 <template>
-  <div class="page">
+  <div class="messages-page">
+    <!-- Header -->
     <van-nav-bar title="消息" :border="false">
       <template #right>
         <van-icon name="add-o" size="22" />
       </template>
     </van-nav-bar>
 
-    <div class="page-content">
+    <!-- Content -->
+    <div class="messages-content">
       <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-        <!-- Search Bar -->
-        <van-search
-          v-model="searchValue"
-          placeholder="搜索"
-          shape="round"
-          :clearable="false"
-        />
-
         <!-- Empty State -->
         <van-empty
           v-if="chatStore.sortedConversations.length === 0"
@@ -54,116 +47,100 @@ function getAvatar(conv: { avatar: string; name: string }) {
         />
 
         <!-- Conversation List -->
-        <van-cell-group v-else :border="false" class="conv-list">
+        <div v-else class="conv-list">
           <van-swipe-cell
             v-for="conv in chatStore.sortedConversations"
             :key="conv.id"
           >
-            <van-cell
-              :title="conv.name"
-              :label="conv.lastMessage || '暂无消息'"
-              center
-              clickable
-              @click="goToChat(conv)"
-            >
-              <template #icon>
-                <div class="conv-avatar-wrap">
-                  <van-image
-                    :src="getAvatar(conv)"
-                    width="48"
-                    height="48"
-                    round
-                    fit="cover"
-                  />
-                  <div v-if="conv.type === 'group'" class="group-badge">
-                    <van-icon name="friends-o" size="10" />
-                  </div>
+            <div class="conv-item" @click="goToChat(conv)">
+              <!-- Avatar -->
+              <div class="conv-avatar">
+                <van-image
+                  :src="getAvatar(conv)"
+                  width="50"
+                  height="50"
+                  round
+                  fit="cover"
+                />
+                <div v-if="conv.type === 'group'" class="group-badge">
+                  <van-icon name="friends-o" size="10" />
                 </div>
-              </template>
-              <template #value>
-                <div class="conv-right">
+              </div>
+
+              <!-- Info -->
+              <div class="conv-info">
+                <div class="conv-top">
+                  <span class="conv-name">{{ conv.name }}</span>
                   <span class="conv-time">{{ formatTime(conv.lastTime) }}</span>
+                </div>
+                <div class="conv-bottom">
+                  <span class="conv-msg">{{ conv.lastMessage || '暂无消息' }}</span>
                   <van-badge
                     v-if="conv.unread > 0"
                     :content="conv.unread > 99 ? '99+' : conv.unread"
                   />
                 </div>
-              </template>
-            </van-cell>
+              </div>
+            </div>
 
             <template #right>
-              <van-button square type="warning" text="置顶" />
-              <van-button square type="danger" text="删除" />
+              <van-button square type="warning" text="置顶" class="swipe-btn" />
+              <van-button square type="danger" text="删除" class="swipe-btn" />
             </template>
           </van-swipe-cell>
-        </van-cell-group>
+        </div>
       </van-pull-refresh>
     </div>
   </div>
 </template>
 
 <style scoped>
-.page {
-  height: 100%;
+.messages-page {
   display: flex;
   flex-direction: column;
-  background-color: var(--im-bg);
+  height: 100%;
+  background: var(--im-bg);
 }
 
-.page :deep(.van-nav-bar) {
+.messages-page :deep(.van-nav-bar) {
+  flex-shrink: 0;
   background: var(--im-bg-white);
 }
 
-.page :deep(.van-nav-bar__title) {
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.page-content {
+.messages-content {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: calc(56px + var(--im-safe-area-bottom));
-}
-
-/* Search */
-.page :deep(.van-search) {
-  padding: 8px 12px;
-  background: var(--im-bg-white);
-}
-
-.page :deep(.van-search__content) {
-  background: var(--im-bg);
+  padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
 }
 
 /* Conversation List */
 .conv-list {
-  margin-top: 8px;
+  background: var(--im-bg-white);
+  margin-top: 10px;
 }
 
-.conv-list :deep(.van-cell) {
+.conv-item {
+  display: flex;
+  align-items: center;
   padding: 12px 16px;
+  background: var(--im-bg-white);
+  cursor: pointer;
 }
 
-.conv-list :deep(.van-cell__title) {
-  font-weight: 500;
+.conv-item:active {
+  background: var(--im-bg);
 }
 
-.conv-list :deep(.van-cell__label) {
-  margin-top: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.conv-avatar-wrap {
+.conv-avatar {
   position: relative;
+  flex-shrink: 0;
   margin-right: 12px;
 }
 
 .group-badge {
   position: absolute;
-  bottom: -2px;
-  right: -2px;
+  bottom: 0;
+  right: 0;
   width: 18px;
   height: 18px;
   display: flex;
@@ -175,25 +152,53 @@ function getAvatar(conv: { avatar: string; name: string }) {
   color: #fff;
 }
 
-.conv-right {
+.conv-info {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
   gap: 6px;
+}
+
+.conv-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.conv-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--im-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .conv-time {
   font-size: 12px;
   color: var(--im-text-muted);
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.conv-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.conv-msg {
+  font-size: 14px;
+  color: var(--im-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
 }
 
 /* Swipe buttons */
-.conv-list :deep(.van-swipe-cell__right) {
-  display: flex;
-}
-
-.conv-list :deep(.van-swipe-cell__right .van-button) {
+.swipe-btn {
   height: 100%;
-  border-radius: 0;
 }
 </style>
