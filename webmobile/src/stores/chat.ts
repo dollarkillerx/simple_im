@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Conversation, Message, WSMessage, Friend, Group } from '@/types'
+import type { Conversation, Message, WSMessage, Friend, Group, MessageTypeValue } from '@/types'
 import { MessageType } from '@/types'
 import { friendApi, groupApi, messageApi } from '@/api/rpc'
 import { wsClient } from '@/utils/websocket'
@@ -118,11 +118,25 @@ export const useChatStore = defineStore('chat', () => {
 
       const list = await messageApi.getHistory(params)
 
+      // Map list to Message type
+      const mappedList: Message[] = list.map((item) => ({
+        ...item,
+        msg_type: item.msg_type as MessageTypeValue,
+        Sender: item.Sender
+          ? {
+              id: item.Sender.id,
+              username: item.Sender.username,
+              nickname: item.Sender.nickname,
+              avatar: item.Sender.avatar,
+            }
+          : undefined,
+      }))
+
       if (!beforeId) {
-        messages.value.set(chatId, list)
+        messages.value.set(chatId, mappedList)
       } else {
         const existing = messages.value.get(chatId) || []
-        messages.value.set(chatId, [...list, ...existing])
+        messages.value.set(chatId, [...mappedList, ...existing])
       }
 
       return list
@@ -135,7 +149,7 @@ export const useChatStore = defineStore('chat', () => {
   async function sendMessage(params: {
     receiverId?: number
     groupId?: number
-    msgType?: MessageType
+    msgType?: MessageTypeValue
     content?: string
     fileUrl?: string
     fileName?: string

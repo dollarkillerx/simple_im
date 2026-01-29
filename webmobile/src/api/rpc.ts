@@ -21,7 +21,7 @@ export async function rpcCall<T>(method: string, params?: Record<string, unknown
     headers,
     body: JSON.stringify({
       jsonrpc: '2.0',
-      id: ++requestId,
+      id: String(++requestId),
       method,
       params: params || {},
     }),

@@ -13,8 +13,8 @@ const (
 type Message struct {
 	ID         int64       `gorm:"primaryKey" json:"id"`
 	SenderID   int64       `gorm:"not null;index" json:"sender_id"`
-	ReceiverID int64       `gorm:"index" json:"receiver_id,omitempty"` // Private chat
-	GroupID    int64       `gorm:"index" json:"group_id,omitempty"`    // Group chat
+	ReceiverID *int64      `gorm:"index" json:"receiver_id,omitempty"` // Private chat (nullable)
+	GroupID    *int64      `gorm:"index" json:"group_id,omitempty"`    // Group chat (nullable)
 	MsgType    MessageType `gorm:"not null" json:"msg_type"`           // 1:text 2:image 3:file
 	Content    string      `gorm:"type:text" json:"content,omitempty"`
 	FileURL    string      `gorm:"size:500" json:"file_url,omitempty"`
@@ -23,8 +23,8 @@ type Message struct {
 	CreatedAt  time.Time   `gorm:"index" json:"created_at"`
 
 	Sender   *User  `gorm:"foreignKey:SenderID" json:"sender,omitempty"`
-	Receiver *User  `gorm:"foreignKey:ReceiverID" json:"receiver,omitempty"`
-	Group    *Group `gorm:"foreignKey:GroupID" json:"group,omitempty"`
+	Receiver *User  `gorm:"foreignKey:ReceiverID;constraint:OnDelete:SET NULL" json:"receiver,omitempty"`
+	Group    *Group `gorm:"foreignKey:GroupID;constraint:OnDelete:SET NULL" json:"group,omitempty"`
 }
 
 func (Message) TableName() string {

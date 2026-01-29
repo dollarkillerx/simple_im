@@ -4,8 +4,8 @@ export interface User {
   username: string
   nickname: string
   avatar: string
-  status: number
-  created_at: string
+  status?: number
+  created_at?: string
 }
 
 // Friend types
@@ -58,18 +58,20 @@ export interface GroupInfo {
 }
 
 // Message types
-export enum MessageType {
-  Text = 1,
-  Image = 2,
-  File = 3,
-}
+export const MessageType = {
+  Text: 1,
+  Image: 2,
+  File: 3,
+} as const
+
+export type MessageTypeValue = (typeof MessageType)[keyof typeof MessageType]
 
 export interface Message {
   id: number
   sender_id: number
   receiver_id: number
   group_id: number
-  msg_type: MessageType
+  msg_type: MessageTypeValue
   content: string
   file_url: string
   file_name: string
@@ -87,7 +89,7 @@ export interface WSMessage {
   receiver_id?: number
   group_id?: number
   group_name?: string
-  msg_type: MessageType
+  msg_type: MessageTypeValue
   content?: string
   file_url?: string
   file_name?: string

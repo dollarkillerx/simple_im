@@ -7,7 +7,7 @@ import { getDefaultAvatar } from '@/utils/format'
 const router = useRouter()
 const chatStore = useChatStore()
 
-const activeTab = ref('friends')
+const activeTab = ref(0)
 const refreshing = ref(false)
 
 const friends = computed(() => chatStore.friends)
@@ -49,38 +49,43 @@ function getAvatar(item: { avatar: string; name?: string; nickname?: string; use
 
 <template>
   <div class="page">
-    <van-nav-bar title="通讯录" fixed placeholder>
+    <van-nav-bar title="通讯录" :border="false">
       <template #right>
         <van-icon
-          name="add-o"
+          :name="activeTab === 0 ? 'add-o' : 'add-o'"
           size="22"
-          @click="activeTab === 'friends' ? goToAddFriend() : goToCreateGroup()"
+          @click="activeTab === 0 ? goToAddFriend() : goToCreateGroup()"
         />
       </template>
     </van-nav-bar>
 
     <div class="page-content">
       <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-        <van-tabs v-model:active="activeTab" sticky offset-top="46">
-          <van-tab title="好友" name="friends">
-            <div class="contact-section">
+        <van-tabs v-model:active="activeTab" animated swipeable>
+          <van-tab title="好友">
+            <div class="tab-content">
               <!-- Friend Requests Entry -->
-              <div
+              <van-cell
                 v-if="chatStore.pendingRequests.length > 0"
-                class="request-entry"
+                is-link
+                center
+                class="request-cell"
                 @click="goToFriendRequests"
               >
-                <div class="request-icon">
-                  <van-icon name="friends-o" size="24" />
-                </div>
-                <div class="request-content">
-                  <span class="request-title">新的好友</span>
+                <template #icon>
+                  <div class="request-icon">
+                    <van-icon name="friends-o" size="20" color="#fff" />
+                  </div>
+                </template>
+                <template #title>
+                  <span class="request-title">新的好友请求</span>
+                </template>
+                <template #value>
                   <van-badge :content="chatStore.pendingRequests.length" />
-                </div>
-                <van-icon name="arrow" color="var(--im-text-placeholder)" />
-              </div>
+                </template>
+              </van-cell>
 
-              <van-cell-group v-if="friends.length > 0" inset>
+              <van-cell-group v-if="friends.length > 0" :border="false">
                 <van-cell
                   v-for="friend in friends"
                   :key="friend.id"
@@ -92,26 +97,31 @@ function getAvatar(item: { avatar: string; name?: string; nickname?: string; use
                   <template #icon>
                     <van-image
                       :src="getAvatar(friend)"
-                      width="40"
-                      height="40"
+                      width="44"
+                      height="44"
                       round
                       fit="cover"
-                      class="friend-avatar"
+                      class="cell-avatar"
                     />
                   </template>
                 </van-cell>
               </van-cell-group>
 
               <van-empty
-                v-else-if="chatStore.pendingRequests.length === 0"
+                v-if="friends.length === 0 && chatStore.pendingRequests.length === 0"
+                image="friends"
                 description="暂无好友"
-              />
+              >
+                <van-button type="primary" round size="small" @click="goToAddFriend">
+                  添加好友
+                </van-button>
+              </van-empty>
             </div>
           </van-tab>
 
-          <van-tab title="群组" name="groups">
-            <div class="contact-section">
-              <van-cell-group v-if="groups.length > 0" inset>
+          <van-tab title="群组">
+            <div class="tab-content">
+              <van-cell-group v-if="groups.length > 0" :border="false">
                 <van-cell
                   v-for="group in groups"
                   :key="group.id"
@@ -119,35 +129,34 @@ function getAvatar(item: { avatar: string; name?: string; nickname?: string; use
                   :label="`${group.owner_name} 创建`"
                   is-link
                   center
+                  @click="goToChat('group', group.id)"
                 >
                   <template #icon>
                     <van-image
                       :src="getAvatar({ ...group, name: group.name })"
-                      width="40"
-                      height="40"
+                      width="44"
+                      height="44"
                       round
                       fit="cover"
-                      class="friend-avatar"
+                      class="cell-avatar"
                     />
                   </template>
                   <template #right-icon>
-                    <div class="group-actions">
-                      <van-icon
-                        name="info-o"
-                        size="20"
-                        @click.stop="goToGroupInfo(group.id)"
-                      />
-                      <van-icon
-                        name="chat-o"
-                        size="20"
-                        @click.stop="goToChat('group', group.id)"
-                      />
-                    </div>
+                    <van-icon
+                      name="info-o"
+                      size="20"
+                      class="info-icon"
+                      @click.stop="goToGroupInfo(group.id)"
+                    />
                   </template>
                 </van-cell>
               </van-cell-group>
 
-              <van-empty v-else description="暂无群组" />
+              <van-empty v-else image="search" description="暂无群组">
+                <van-button type="primary" round size="small" @click="goToCreateGroup">
+                  创建群组
+                </van-button>
+              </van-empty>
             </div>
           </van-tab>
         </van-tabs>
@@ -164,28 +173,48 @@ function getAvatar(item: { avatar: string; name?: string; nickname?: string; use
   background-color: var(--im-bg);
 }
 
+.page :deep(.van-nav-bar) {
+  background: var(--im-bg-white);
+}
+
 .page-content {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: calc(var(--im-tabbar-height) + var(--im-safe-area-bottom));
+  padding-bottom: calc(56px + var(--im-safe-area-bottom));
 }
 
-.contact-section {
-  padding: 12px 0;
+.page :deep(.van-tabs__nav) {
+  background: var(--im-bg-white);
 }
 
-.request-entry {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  margin: 0 12px 12px;
-  background-color: var(--im-bg-white);
-  border-radius: var(--im-radius-lg);
-  cursor: pointer;
+.page :deep(.van-tab) {
+  font-size: 15px;
 }
 
-.request-entry:active {
-  background-color: var(--im-bg-gray);
+.page :deep(.van-tab--active) {
+  font-weight: 600;
+}
+
+.page :deep(.van-tabs__line) {
+  background: var(--im-primary);
+  width: 24px !important;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.tab-content {
+  min-height: 300px;
+  padding-top: 8px;
+}
+
+.request-cell {
+  margin: 8px 12px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(251, 146, 60, 0.05) 100%);
+}
+
+.request-cell :deep(.van-cell__left-icon) {
+  margin-right: 12px;
 }
 
 .request-icon {
@@ -194,36 +223,33 @@ function getAvatar(item: { avatar: string; name?: string; nickname?: string; use
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #ff976a 0%, #ff6034 100%);
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
   border-radius: 50%;
-  color: var(--im-text-white);
-  margin-right: 12px;
-}
-
-.request-content {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .request-title {
-  font-size: 15px;
   font-weight: 500;
 }
 
-.friend-avatar {
+.cell-avatar {
   margin-right: 12px;
 }
 
-.group-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  color: var(--im-text-secondary);
+.info-icon {
+  color: var(--im-text-muted);
+  padding: 8px;
+  margin-right: -8px;
 }
 
-.group-actions .van-icon {
-  cursor: pointer;
+.info-icon:active {
+  color: var(--im-primary);
+}
+
+.page :deep(.van-empty) {
+  padding: 40px 0;
+}
+
+.page :deep(.van-empty__bottom) {
+  margin-top: 16px;
 }
 </style>

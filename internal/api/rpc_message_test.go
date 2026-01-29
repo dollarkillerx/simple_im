@@ -43,8 +43,8 @@ func TestMessageSendMethod_PrivateMessage(t *testing.T) {
 	if msg.SenderID != user1.ID {
 		t.Errorf("Expected sender %d, got %d", user1.ID, msg.SenderID)
 	}
-	if msg.ReceiverID != user2.ID {
-		t.Errorf("Expected receiver %d, got %d", user2.ID, msg.ReceiverID)
+	if msg.ReceiverID == nil || *msg.ReceiverID != user2.ID {
+		t.Errorf("Expected receiver %d, got %v", user2.ID, msg.ReceiverID)
 	}
 }
 
@@ -74,8 +74,8 @@ func TestMessageSendMethod_GroupMessage(t *testing.T) {
 	}
 
 	msg := result.(*models.Message)
-	if msg.GroupID != group.ID {
-		t.Errorf("Expected group ID %d, got %d", group.ID, msg.GroupID)
+	if msg.GroupID == nil || *msg.GroupID != group.ID {
+		t.Errorf("Expected group ID %d, got %v", group.ID, msg.GroupID)
 	}
 }
 
@@ -228,9 +228,10 @@ func TestMessageHistoryMethod_PrivateChat(t *testing.T) {
 
 	// Create some messages
 	for i := 0; i < 5; i++ {
+		receiverID := user2.ID
 		msg := &models.Message{
 			SenderID:   user1.ID,
-			ReceiverID: user2.ID,
+			ReceiverID: &receiverID,
 			MsgType:    models.MsgTypeText,
 			Content:    "Message " + string(rune('A'+i)),
 			CreatedAt:  time.Now().Add(time.Duration(i) * time.Second),
@@ -269,9 +270,10 @@ func TestMessageHistoryMethod_GroupChat(t *testing.T) {
 
 	// Create some group messages
 	for i := 0; i < 3; i++ {
+		groupID := group.ID
 		msg := &models.Message{
 			SenderID:  user.ID,
-			GroupID:   group.ID,
+			GroupID:   &groupID,
 			MsgType:   models.MsgTypeText,
 			Content:   "Group message " + string(rune('A'+i)),
 			CreatedAt: time.Now().Add(time.Duration(i) * time.Second),
@@ -312,9 +314,10 @@ func TestMessageHistoryMethod_Pagination(t *testing.T) {
 	// Create 10 messages
 	var lastID int64
 	for i := 0; i < 10; i++ {
+		receiverID := user2.ID
 		msg := &models.Message{
 			SenderID:   user1.ID,
-			ReceiverID: user2.ID,
+			ReceiverID: &receiverID,
 			MsgType:    models.MsgTypeText,
 			Content:    "Message " + string(rune('A'+i)),
 			CreatedAt:  time.Now().Add(time.Duration(i) * time.Second),

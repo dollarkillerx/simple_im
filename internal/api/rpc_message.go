@@ -91,15 +91,21 @@ func (m *MessageSendMethod) Execute(ctx context.Context, params json.RawMessage)
 
 	// Create message
 	msg := &models.Message{
-		SenderID:   userID,
-		ReceiverID: p.ReceiverID,
-		GroupID:    p.GroupID,
-		MsgType:    p.MsgType,
-		Content:    p.Content,
-		FileURL:    p.FileURL,
-		FileName:   p.FileName,
-		FileSize:   p.FileSize,
-		CreatedAt:  time.Now(),
+		SenderID:  userID,
+		MsgType:   p.MsgType,
+		Content:   p.Content,
+		FileURL:   p.FileURL,
+		FileName:  p.FileName,
+		FileSize:  p.FileSize,
+		CreatedAt: time.Now(),
+	}
+
+	// Set nullable foreign keys
+	if p.ReceiverID > 0 {
+		msg.ReceiverID = &p.ReceiverID
+	}
+	if p.GroupID > 0 {
+		msg.GroupID = &p.GroupID
 	}
 
 	if err := db.Create(msg).Error; err != nil {

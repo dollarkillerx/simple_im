@@ -41,30 +41,32 @@ function goBack() {
 
 <template>
   <div class="page">
-    <van-nav-bar
-      title="好友请求"
-      left-arrow
-      fixed
-      placeholder
-      @click-left="goBack"
-    />
+    <div class="page-header">
+      <div class="header-left" @click="goBack">
+        <van-icon name="arrow-left" size="22" />
+      </div>
+      <h1 class="header-title">好友请求</h1>
+      <div class="header-right"></div>
+    </div>
 
     <div class="page-content">
-      <van-empty
-        v-if="chatStore.pendingRequests.length === 0"
-        description="暂无好友请求"
-      />
+      <div v-if="chatStore.pendingRequests.length === 0" class="empty-state">
+        <div class="empty-icon">
+          <van-icon name="friends-o" size="48" />
+        </div>
+        <p class="empty-text">暂无好友请求</p>
+      </div>
 
       <div v-else class="request-list">
         <div
           v-for="request in chatStore.pendingRequests"
           :key="request.id"
-          class="request-item"
+          class="request-card"
         >
           <van-image
             :src="getAvatar(request)"
-            width="48"
-            height="48"
+            width="56"
+            height="56"
             round
             fit="cover"
             class="request-avatar"
@@ -76,22 +78,20 @@ function goBack() {
           </div>
 
           <div class="request-actions">
-            <van-button
-              size="small"
-              plain
-              :loading="processing.has(request.id)"
+            <button
+              class="action-btn reject"
+              :disabled="processing.has(request.id)"
               @click="handleRequest(request.id, false)"
             >
-              拒绝
-            </van-button>
-            <van-button
-              type="primary"
-              size="small"
-              :loading="processing.has(request.id)"
+              <van-icon name="cross" size="16" />
+            </button>
+            <button
+              class="action-btn accept"
+              :disabled="processing.has(request.id)"
               @click="handleRequest(request.id, true)"
             >
-              同意
-            </van-button>
+              <van-icon name="success" size="16" />
+            </button>
           </div>
         </div>
       </div>
@@ -107,29 +107,86 @@ function goBack() {
   background-color: var(--im-bg);
 }
 
-.page-content {
-  flex: 1;
-  overflow-y: auto;
-}
-
-.request-list {
-  background-color: var(--im-bg-white);
-}
-
-.request-item {
+.page-header {
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--im-border-light);
+  background-color: var(--im-bg-white);
+  box-shadow: var(--im-shadow-xs);
 }
 
-.request-item:last-child {
-  border-bottom: none;
+.header-left,
+.header-right {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.header-left:active {
+  background-color: var(--im-bg-card);
+}
+
+.header-title {
+  flex: 1;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--im-text-primary);
+}
+
+.page-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 24px;
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 50%;
+  color: var(--im-primary);
+  margin-bottom: 16px;
+}
+
+.empty-text {
+  font-size: 16px;
+  color: var(--im-text-muted);
+}
+
+.request-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.request-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: var(--im-bg-white);
+  border-radius: var(--im-radius-lg);
+  box-shadow: var(--im-shadow-sm);
 }
 
 .request-avatar {
   flex-shrink: 0;
-  margin-right: 12px;
+  box-shadow: var(--im-shadow-xs);
 }
 
 .request-info {
@@ -139,19 +196,54 @@ function goBack() {
 
 .request-name {
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--im-text-primary);
   margin-bottom: 4px;
 }
 
 .request-time {
-  font-size: 12px;
-  color: var(--im-text-placeholder);
+  font-size: 13px;
+  color: var(--im-text-muted);
 }
 
 .request-actions {
   display: flex;
-  gap: 8px;
-  flex-shrink: 0;
+  gap: 10px;
+}
+
+.action-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-btn.reject {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--im-danger);
+}
+
+.action-btn.reject:active:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.action-btn.accept {
+  background: var(--im-primary-gradient);
+  color: #fff;
+  box-shadow: var(--im-shadow-primary);
+}
+
+.action-btn.accept:active:not(:disabled) {
+  transform: scale(0.95);
 }
 </style>

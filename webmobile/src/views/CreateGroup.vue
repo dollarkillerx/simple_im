@@ -66,77 +66,74 @@ function goBack() {
 
 <template>
   <div class="page">
-    <van-nav-bar
-      title="创建群组"
-      left-arrow
-      fixed
-      placeholder
-      @click-left="goBack"
-    >
-      <template #right>
-        <van-button
-          type="primary"
-          size="small"
-          :disabled="!canCreate"
-          :loading="loading"
-          @click="handleCreate"
-        >
-          创建
-        </van-button>
-      </template>
-    </van-nav-bar>
+    <div class="page-header">
+      <div class="header-left" @click="goBack">
+        <van-icon name="arrow-left" size="22" />
+      </div>
+      <h1 class="header-title">创建群组</h1>
+      <van-button
+        type="primary"
+        size="small"
+        round
+        :disabled="!canCreate"
+        :loading="loading"
+        @click="handleCreate"
+      >
+        创建
+      </van-button>
+    </div>
 
     <div class="page-content">
-      <van-cell-group inset class="group-info-section">
-        <van-field
-          v-model="groupName"
-          label="群名称"
-          placeholder="请输入群组名称"
-          :maxlength="50"
-          clearable
-        />
-      </van-cell-group>
-
-      <div class="section-title">
-        选择群成员（可选）
-        <span v-if="selectedMembers.length > 0" class="selected-count">
-          已选 {{ selectedMembers.length }} 人
-        </span>
+      <div class="form-section">
+        <div class="form-label">群组名称</div>
+        <div class="input-card">
+          <van-icon name="cluster-o" size="20" color="var(--im-primary)" />
+          <input
+            v-model="groupName"
+            class="form-input"
+            placeholder="给群组起个名字"
+            maxlength="50"
+          />
+          <span class="char-count">{{ groupName.length }}/50</span>
+        </div>
       </div>
 
-      <van-cell-group inset>
-        <van-cell
-          v-for="friend in chatStore.friends"
-          :key="friend.id"
-          :title="friend.nickname || friend.username"
-          clickable
-          center
-          @click="toggleMember(friend.user_id)"
-        >
-          <template #icon>
+      <div class="form-section">
+        <div class="form-label">
+          选择成员
+          <span v-if="selectedMembers.length > 0" class="selected-count">
+            已选 {{ selectedMembers.length }} 人
+          </span>
+        </div>
+
+        <div v-if="chatStore.friends.length > 0" class="member-list">
+          <div
+            v-for="friend in chatStore.friends"
+            :key="friend.id"
+            class="member-item"
+            :class="{ selected: isMemberSelected(friend.user_id) }"
+            @click="toggleMember(friend.user_id)"
+          >
             <van-image
               :src="getAvatar(friend)"
-              width="40"
-              height="40"
+              width="44"
+              height="44"
               round
               fit="cover"
-              class="friend-avatar"
+              class="member-avatar"
             />
-          </template>
-          <template #right-icon>
-            <van-icon
-              :name="isMemberSelected(friend.user_id) ? 'success' : 'circle'"
-              :color="isMemberSelected(friend.user_id) ? 'var(--im-primary)' : 'var(--im-text-placeholder)'"
-              size="20"
-            />
-          </template>
-        </van-cell>
-      </van-cell-group>
+            <span class="member-name">{{ friend.nickname || friend.username }}</span>
+            <div class="check-icon">
+              <van-icon v-if="isMemberSelected(friend.user_id)" name="success" size="16" />
+            </div>
+          </div>
+        </div>
 
-      <van-empty
-        v-if="chatStore.friends.length === 0"
-        description="暂无好友可添加"
-      />
+        <div v-else class="empty-state">
+          <van-icon name="friends-o" size="32" color="var(--im-text-muted)" />
+          <p>暂无好友可添加</p>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -149,31 +146,163 @@ function goBack() {
   background-color: var(--im-bg);
 }
 
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: var(--im-bg-white);
+  box-shadow: var(--im-shadow-xs);
+}
+
+.header-left {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.header-left:active {
+  background-color: var(--im-bg-card);
+}
+
+.header-title {
+  flex: 1;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--im-text-primary);
+}
+
 .page-content {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 0;
+  padding: 20px 16px;
 }
 
-.group-info-section {
-  margin-bottom: 12px;
+.form-section {
+  margin-bottom: 24px;
 }
 
-.section-title {
+.form-label {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px;
-  font-size: 14px;
-  color: var(--im-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--im-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  padding-left: 4px;
 }
 
 .selected-count {
   color: var(--im-primary);
-  font-weight: 500;
+  text-transform: none;
 }
 
-.friend-avatar {
-  margin-right: 12px;
+.input-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--im-bg-white);
+  border-radius: var(--im-radius-lg);
+  box-shadow: var(--im-shadow-sm);
+}
+
+.form-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  color: var(--im-text-primary);
+  outline: none;
+}
+
+.form-input::placeholder {
+  color: var(--im-text-muted);
+}
+
+.char-count {
+  font-size: 12px;
+  color: var(--im-text-muted);
+}
+
+.member-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+}
+
+.member-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 8px;
+  background: var(--im-bg-white);
+  border-radius: var(--im-radius-lg);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.member-item:active {
+  transform: scale(0.98);
+}
+
+.member-item.selected {
+  background: rgba(99, 102, 241, 0.1);
+  box-shadow: inset 0 0 0 2px var(--im-primary);
+}
+
+.member-avatar {
+  box-shadow: var(--im-shadow-xs);
+}
+
+.member-name {
+  font-size: 13px;
+  color: var(--im-text-primary);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.check-icon {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--im-primary-gradient);
+  border-radius: 50%;
+  color: #fff;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.2s;
+}
+
+.member-item.selected .check-icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px;
+  color: var(--im-text-muted);
+  font-size: 14px;
 }
 </style>

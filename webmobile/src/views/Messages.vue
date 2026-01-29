@@ -30,59 +30,73 @@ function getAvatar(conv: { avatar: string; name: string }) {
 
 <template>
   <div class="page">
-    <van-nav-bar title="消息" fixed placeholder />
+    <van-nav-bar title="消息" :border="false">
+      <template #right>
+        <van-icon name="add-o" size="22" />
+      </template>
+    </van-nav-bar>
 
     <div class="page-content">
       <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+        <!-- Search Bar -->
         <van-search
           v-model="searchValue"
           placeholder="搜索"
           shape="round"
-          background="transparent"
+          :clearable="false"
         />
 
-        <div v-if="chatStore.sortedConversations.length === 0" class="empty-state">
-          <van-empty description="暂无消息" />
-        </div>
+        <!-- Empty State -->
+        <van-empty
+          v-if="chatStore.sortedConversations.length === 0"
+          image="search"
+          description="暂无消息"
+        />
 
-        <div v-else class="conversation-list">
+        <!-- Conversation List -->
+        <van-cell-group v-else :border="false" class="conv-list">
           <van-swipe-cell
             v-for="conv in chatStore.sortedConversations"
             :key="conv.id"
           >
-            <div class="conversation-item" @click="goToChat(conv)">
-              <div class="conv-avatar">
-                <van-image
-                  :src="getAvatar(conv)"
-                  :alt="conv.name"
-                  width="48"
-                  height="48"
-                  round
-                  fit="cover"
-                />
-                <span v-if="conv.type === 'group'" class="group-badge">
-                  <van-icon name="friends-o" size="12" />
-                </span>
-              </div>
-              <div class="conv-content">
-                <div class="conv-header">
-                  <span class="conv-name">{{ conv.name }}</span>
-                  <span class="conv-time">{{ formatTime(conv.lastTime) }}</span>
+            <van-cell
+              :title="conv.name"
+              :label="conv.lastMessage || '暂无消息'"
+              center
+              clickable
+              @click="goToChat(conv)"
+            >
+              <template #icon>
+                <div class="conv-avatar-wrap">
+                  <van-image
+                    :src="getAvatar(conv)"
+                    width="48"
+                    height="48"
+                    round
+                    fit="cover"
+                  />
+                  <div v-if="conv.type === 'group'" class="group-badge">
+                    <van-icon name="friends-o" size="10" />
+                  </div>
                 </div>
-                <div class="conv-message">
-                  <span class="conv-text">{{ conv.lastMessage || '暂无消息' }}</span>
+              </template>
+              <template #value>
+                <div class="conv-right">
+                  <span class="conv-time">{{ formatTime(conv.lastTime) }}</span>
                   <van-badge
                     v-if="conv.unread > 0"
                     :content="conv.unread > 99 ? '99+' : conv.unread"
                   />
                 </div>
-              </div>
-            </div>
+              </template>
+            </van-cell>
+
             <template #right>
-              <van-button square type="danger" text="删除" class="swipe-btn" />
+              <van-button square type="warning" text="置顶" />
+              <van-button square type="danger" text="删除" />
             </template>
           </van-swipe-cell>
-        </div>
+        </van-cell-group>
       </van-pull-refresh>
     </div>
   </div>
@@ -96,31 +110,53 @@ function getAvatar(conv: { avatar: string; name: string }) {
   background-color: var(--im-bg);
 }
 
+.page :deep(.van-nav-bar) {
+  background: var(--im-bg-white);
+}
+
+.page :deep(.van-nav-bar__title) {
+  font-size: 18px;
+  font-weight: 600;
+}
+
 .page-content {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: calc(var(--im-tabbar-height) + var(--im-safe-area-bottom));
+  padding-bottom: calc(56px + var(--im-safe-area-bottom));
 }
 
-.conversation-list {
-  background-color: var(--im-bg-white);
+/* Search */
+.page :deep(.van-search) {
+  padding: 8px 12px;
+  background: var(--im-bg-white);
 }
 
-.conversation-item {
-  display: flex;
-  align-items: center;
+.page :deep(.van-search__content) {
+  background: var(--im-bg);
+}
+
+/* Conversation List */
+.conv-list {
+  margin-top: 8px;
+}
+
+.conv-list :deep(.van-cell) {
   padding: 12px 16px;
-  cursor: pointer;
-  transition: background-color var(--im-transition-fast);
 }
 
-.conversation-item:active {
-  background-color: var(--im-bg-gray);
+.conv-list :deep(.van-cell__title) {
+  font-weight: 500;
 }
 
-.conv-avatar {
+.conv-list :deep(.van-cell__label) {
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conv-avatar-wrap {
   position: relative;
-  flex-shrink: 0;
   margin-right: 12px;
 }
 
@@ -133,62 +169,31 @@ function getAvatar(conv: { avatar: string; name: string }) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--im-primary);
+  background: var(--im-primary);
   border-radius: 50%;
   border: 2px solid var(--im-bg-white);
-  color: var(--im-text-white);
+  color: #fff;
 }
 
-.conv-content {
-  flex: 1;
-  min-width: 0;
-  padding: 2px 0;
-  border-bottom: 1px solid var(--im-border-light);
-}
-
-.conversation-item:last-child .conv-content {
-  border-bottom: none;
-}
-
-.conv-header {
+.conv-right {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.conv-name {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--im-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
 }
 
 .conv-time {
   font-size: 12px;
-  color: var(--im-text-placeholder);
-  flex-shrink: 0;
-  margin-left: 8px;
+  color: var(--im-text-muted);
 }
 
-.conv-message {
+/* Swipe buttons */
+.conv-list :deep(.van-swipe-cell__right) {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
-.conv-text {
-  flex: 1;
-  font-size: 13px;
-  color: var(--im-text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.swipe-btn {
+.conv-list :deep(.van-swipe-cell__right .van-button) {
   height: 100%;
+  border-radius: 0;
 }
 </style>

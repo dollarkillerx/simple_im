@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { showToast, showActionSheet } from 'vant'
+import { useRouter } from 'vue-router'
+import { showToast } from 'vant'
 import { useChatStore } from '@/stores/chat'
 import { useUserStore } from '@/stores/user'
 import { MessageType } from '@/types'
@@ -13,7 +13,6 @@ const props = defineProps<{
 }>()
 
 const router = useRouter()
-const route = useRoute()
 const chatStore = useChatStore()
 const userStore = useUserStore()
 
@@ -36,6 +35,14 @@ function getAvatar(name: string, avatar?: string) {
 
 function isSelf(senderId: number) {
   return senderId === userStore.userInfo?.id
+}
+
+function shouldShowTime(index: number) {
+  if (index === 0) return true
+  const curr = messages.value[index]
+  const prev = messages.value[index - 1]
+  if (!prev || !curr) return true
+  return new Date(curr.created_at).getTime() - new Date(prev.created_at).getTime() > 300000
 }
 
 function scrollToBottom() {
@@ -80,26 +87,6 @@ async function sendMessage() {
   }
 }
 
-async function handleAttachment() {
-  const actions = [
-    { name: '图片', value: 'image' },
-    { name: '文件', value: 'file' },
-  ]
-
-  try {
-    const action = await showActionSheet({ actions })
-    if (action.value === 'image') {
-      // TODO: Implement image upload
-      showToast('图片上传功能开发中')
-    } else if (action.value === 'file') {
-      // TODO: Implement file upload
-      showToast('文件上传功能开发中')
-    }
-  } catch {
-    // User cancelled
-  }
-}
-
 function goBack() {
   router.back()
 }
@@ -129,118 +116,116 @@ watch(
 
 <template>
   <div class="chat-page">
+    <!-- Header -->
     <van-nav-bar
       :title="chatTitle"
       left-arrow
-      fixed
-      placeholder
+      :border="false"
       @click-left="goBack"
     >
       <template #right>
         <van-icon
           v-if="type === 'group'"
           name="ellipsis"
-          size="22"
+          size="20"
           @click="goToInfo"
         />
       </template>
     </van-nav-bar>
 
+    <!-- Messages -->
     <div ref="messagesContainer" class="messages-container">
-      <van-loading v-if="loading" class="loading-indicator" />
-
-      <div class="messages-list">
-        <div
-          v-for="msg in messages"
-          :key="msg.id"
-          class="message-item"
-          :class="{ 'message-self': isSelf(msg.sender_id) }"
-        >
-          <van-image
-            v-if="!isSelf(msg.sender_id)"
-            :src="getAvatar(msg.Sender?.nickname || msg.Sender?.username || 'U', msg.Sender?.avatar)"
-            width="36"
-            height="36"
-            round
-            fit="cover"
-            class="message-avatar"
-          />
-
-          <div class="message-content">
-            <div v-if="!isSelf(msg.sender_id) && type === 'group'" class="message-sender">
-              {{ msg.Sender?.nickname || msg.Sender?.username }}
-            </div>
-
-            <div class="message-bubble">
-              <!-- Text message -->
-              <template v-if="msg.msg_type === MessageType.Text">
-                {{ msg.content }}
-              </template>
-
-              <!-- Image message -->
-              <template v-else-if="msg.msg_type === MessageType.Image">
-                <van-image
-                  :src="msg.file_url"
-                  width="200"
-                  fit="contain"
-                  radius="8"
-                  @click="() => {}"
-                />
-              </template>
-
-              <!-- File message -->
-              <template v-else-if="msg.msg_type === MessageType.File">
-                <div class="file-message">
-                  <van-icon name="description" size="32" />
-                  <div class="file-info">
-                    <span class="file-name">{{ msg.file_name }}</span>
-                    <span class="file-size">{{ formatFileSize(msg.file_size) }}</span>
-                  </div>
-                </div>
-              </template>
-            </div>
-
-            <div class="message-time">
-              {{ formatChatTime(msg.created_at) }}
-            </div>
-          </div>
-
-          <van-image
-            v-if="isSelf(msg.sender_id)"
-            :src="getAvatar(userStore.userInfo?.nickname || 'U', userStore.userInfo?.avatar)"
-            width="36"
-            height="36"
-            round
-            fit="cover"
-            class="message-avatar"
-          />
-        </div>
+      <div v-if="loading" class="loading-wrap">
+        <van-loading size="24" />
       </div>
 
-      <van-empty v-if="!loading && messages.length === 0" description="暂无消息" />
+      <div v-else-if="messages.length === 0" class="empty-wrap">
+        <van-empty image="search" description="暂无消息" />
+      </div>
+
+      <div v-else class="messages-list">
+        <template v-for="(msg, index) in messages" :key="msg.id">
+          <!-- Time Divider -->
+          <div v-if="shouldShowTime(index)" class="time-divider">
+            {{ formatChatTime(msg.created_at) }}
+          </div>
+
+          <!-- Message Item -->
+          <div class="message-row" :class="{ 'is-self': isSelf(msg.sender_id) }">
+            <!-- Avatar (other) -->
+            <van-image
+              v-if="!isSelf(msg.sender_id)"
+              :src="getAvatar(msg.Sender?.nickname || msg.Sender?.username || 'U', msg.Sender?.avatar)"
+              width="36"
+              height="36"
+              round
+              fit="cover"
+              class="msg-avatar"
+            />
+
+            <div class="msg-main">
+              <!-- Sender Name (group only) -->
+              <div v-if="!isSelf(msg.sender_id) && type === 'group'" class="msg-sender">
+                {{ msg.Sender?.nickname || msg.Sender?.username }}
+              </div>
+
+              <!-- Bubble -->
+              <div class="msg-bubble" :class="{ 'bubble-self': isSelf(msg.sender_id) }">
+                <!-- Text -->
+                <template v-if="msg.msg_type === MessageType.Text">
+                  <span class="msg-text">{{ msg.content }}</span>
+                </template>
+
+                <!-- Image -->
+                <template v-else-if="msg.msg_type === MessageType.Image">
+                  <van-image :src="msg.file_url" width="180" fit="cover" radius="8" />
+                </template>
+
+                <!-- File -->
+                <template v-else-if="msg.msg_type === MessageType.File">
+                  <div class="file-card">
+                    <van-icon name="description" size="28" />
+                    <div class="file-info">
+                      <span class="file-name">{{ msg.file_name }}</span>
+                      <span class="file-size">{{ formatFileSize(msg.file_size) }}</span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- Avatar (self) -->
+            <van-image
+              v-if="isSelf(msg.sender_id)"
+              :src="getAvatar(userStore.userInfo?.nickname || 'U', userStore.userInfo?.avatar)"
+              width="36"
+              height="36"
+              round
+              fit="cover"
+              class="msg-avatar"
+            />
+          </div>
+        </template>
+      </div>
     </div>
 
-    <div class="input-area">
-      <van-icon
-        name="add-o"
-        size="24"
-        class="input-action"
-        @click="handleAttachment"
-      />
+    <!-- Input Area -->
+    <div class="input-bar">
       <van-field
         v-model="messageInput"
-        class="message-input"
+        type="textarea"
+        :autosize="{ minHeight: 36, maxHeight: 100 }"
         placeholder="输入消息..."
-        type="text"
         :border="false"
-        @keyup.enter="sendMessage"
+        @keydown.enter.exact.prevent="sendMessage"
       />
       <van-button
         type="primary"
         size="small"
         round
-        :disabled="!messageInput.trim() || sending"
+        :disabled="!messageInput.trim()"
         :loading="sending"
+        class="send-btn"
         @click="sendMessage"
       >
         发送
@@ -254,101 +239,127 @@ watch(
   height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: var(--im-bg-chat);
+  background: var(--im-bg);
 }
 
+.chat-page :deep(.van-nav-bar) {
+  background: var(--im-bg-white);
+  box-shadow: var(--im-shadow-xs);
+}
+
+/* Messages Container */
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 12px 0;
+  padding: 12px 16px;
   -webkit-overflow-scrolling: touch;
 }
 
-.loading-indicator {
+.loading-wrap,
+.empty-wrap {
   display: flex;
   justify-content: center;
-  padding: 16px;
+  align-items: center;
+  min-height: 200px;
 }
 
 .messages-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding-bottom: 12px;
+  gap: 8px;
 }
 
-.message-item {
+/* Time Divider */
+.time-divider {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.time-divider::before {
+  content: attr(data-time);
+}
+
+.time-divider {
+  font-size: 12px;
+  color: var(--im-text-muted);
+  background: var(--im-bg);
+  padding: 4px 12px;
+  border-radius: 12px;
+  display: inline-block;
+  margin: 8px auto;
+  align-self: center;
+}
+
+/* Message Row */
+.message-row {
   display: flex;
   align-items: flex-start;
   gap: 8px;
 }
 
-.message-item.message-self {
+.message-row.is-self {
   flex-direction: row-reverse;
 }
 
-.message-avatar {
+.msg-avatar {
   flex-shrink: 0;
 }
 
-.message-content {
+.msg-main {
   max-width: 70%;
   display: flex;
   flex-direction: column;
 }
 
-.message-self .message-content {
+.is-self .msg-main {
   align-items: flex-end;
 }
 
-.message-sender {
+.msg-sender {
   font-size: 12px;
-  color: var(--im-text-secondary);
+  color: var(--im-text-muted);
   margin-bottom: 4px;
-  padding-left: 8px;
+  margin-left: 4px;
 }
 
-.message-bubble {
-  padding: 10px 12px;
-  border-radius: 12px;
-  background-color: var(--im-bubble-other);
+/* Bubble */
+.msg-bubble {
+  padding: 10px 14px;
+  background: var(--im-bg-white);
+  border-radius: 16px;
+  border-top-left-radius: 4px;
+  box-shadow: var(--im-shadow-xs);
   word-break: break-word;
-  font-size: 15px;
-  line-height: 1.5;
-  box-shadow: var(--im-shadow-sm);
 }
 
-.message-self .message-bubble {
-  background-color: var(--im-bubble-self);
+.msg-bubble.bubble-self {
+  background: var(--im-primary);
+  color: #fff;
+  border-top-left-radius: 16px;
   border-top-right-radius: 4px;
 }
 
-.message-item:not(.message-self) .message-bubble {
-  border-top-left-radius: 4px;
+.msg-text {
+  font-size: 15px;
+  line-height: 1.5;
+  white-space: pre-wrap;
 }
 
-.message-time {
-  font-size: 11px;
-  color: var(--im-text-placeholder);
-  margin-top: 4px;
-  padding: 0 8px;
-}
-
-.file-message {
+/* File Card */
+.file-card {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 180px;
 }
 
 .file-info {
   flex: 1;
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
 }
 
 .file-name {
+  display: block;
   font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -357,33 +368,35 @@ watch(
 
 .file-size {
   font-size: 12px;
-  color: var(--im-text-secondary);
+  opacity: 0.7;
 }
 
-.input-area {
+/* Input Bar */
+.input-bar {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 8px;
   padding: 8px 12px;
   padding-bottom: calc(8px + var(--im-safe-area-bottom));
-  background-color: var(--im-bg-white);
+  background: var(--im-bg-white);
   border-top: 1px solid var(--im-border-light);
 }
 
-.input-action {
-  color: var(--im-text-secondary);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.message-input {
+.input-bar :deep(.van-field) {
   flex: 1;
-  background-color: var(--im-bg-gray);
-  border-radius: 20px;
-  padding: 0 16px;
+  background: var(--im-bg);
+  border-radius: 18px;
+  padding: 6px 14px;
 }
 
-.message-input :deep(.van-field__body) {
-  padding: 8px 0;
+.input-bar :deep(.van-field__control) {
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.send-btn {
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0 16px;
 }
 </style>

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"simple_im/internal/conf"
+	"simple_im/internal/models"
 	"simple_im/internal/server"
 	"simple_im/pkg/common/client"
 	"simple_im/pkg/common/config"
@@ -30,6 +31,18 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to PostgreSQL: %v", err)
 	}
+
+	// Auto migrate database tables
+	if err := db.AutoMigrate(
+		&models.User{},
+		&models.Friend{},
+		&models.Group{},
+		&models.GroupMember{},
+		&models.Message{},
+	); err != nil {
+		log.Fatalf("Failed to auto migrate: %v", err)
+	}
+	log.Println("Database tables migrated successfully")
 
 	redisClient, err := client.RedisClient(appConfig.RedisConfiguration)
 	if err != nil {
