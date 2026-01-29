@@ -1,0 +1,30 @@
+[ServiceConfiguration]
+Port = "8182"
+Debug = true
+
+[LoggerConfiguration]
+Filename = "./logs/simple_im.log"
+MaxSize = 10
+
+[PostgresConfiguration]
+Host = "127.0.0.1"
+Port = 18432
+User = "pacman"
+Password = "MEB3oZZkpxgA1q4WcA10"
+DBName = "im"
+SSLMode = false
+TimeZone = "Asia/Shanghai"
+
+[RedisConfiguration]
+Addr = "127.0.0.1:8879"
+Db = 2
+Password = "797Qa8fLHwv38"
+
+[JWTConfiguration]
+Secret = "simple_im_jwt_secret_key_2024"
+Expire = 86400
+
+[UploadConfiguration]
+MaxSize = 10485760
+SavePath = "./uploads"
+AllowTypes = ["image/jpeg", "image/png", "image/gif", "application/pdf", "application/zip"]
